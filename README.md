@@ -1,2 +1,2 @@
-# mojio-home-assistant
-Custom component to integrate mojio with home assistang
+# Mojio Home Assistant Integration
+Custom component to integrate mojio with home assistant

@@ -1,7 +1,8 @@
 {
   "domain": "mojio",
   "name": "Mojio",
-  "documentation": "https://www.home-assistant.io/integrations/mojio",
+  "documentation": "https://github.com/simontb/mojio-home-assistant",
   "requirements": ["mojio_sdk==0.0.8"],
+  "version": "2022.02.1",
   "codeowners": ["@simontb"]
 }

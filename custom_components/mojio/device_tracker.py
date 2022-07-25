@@ -76,10 +76,31 @@ class MojioDeviceScanner:
             vehicles = self._api.get_vehicles()
 
             for vehicle in vehicles:
+                v_id = vehicle.licence_plate.replace("-", "_").replace(" ", "_")
+                car_attributes = {"address": vehicle.location.formatted_address,
+                                  "VIN": vehicle.vin,
+                                  "parked": vehicle.parked,
+                                  "status": vehicle.status,
+                                  "name": vehicle.name,
+                                  "direction": vehicle.heading_direction,
+                                  "left_turn": vehicle.left_turn,
+                                  "idle": vehicle.idle,
+                                  "ignition_state": vehicle.ignition_state,
+                                  "tow_state": vehicle.tow_state,
+                                  "last_contact": vehicle.last_contact,
+                                  "fuel_level": vehicle.fuel.fuel_level,
+                                  "seatbelt_warn": vehicle.seatbelt.status_warning,
+                                  "battery_voltage": vehicle.battery.value,
+                                  "rpm": vehicle.current_rpm,
+                                  "speed_mph": vehicle.current_speed_mph,
+                                  "speed_kph": vehicle.current_speed_kph,
+                                  "oil_temp_f": vehicle.engine_oil.temp_f,
+                                  "oil_temp_c": vehicle.engine_oil.temp_c}
                 self._see(
-                    dev_id=vehicle.licence_plate.replace("-", "_"),
+                    dev_id=v_id,
                     gps=(vehicle.location.latitude, vehicle.location.longitude),
                     icon="mdi:car",
+                    attributes=car_attributes,
                 )
 
         except requests.exceptions.ConnectionError:

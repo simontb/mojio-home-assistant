@@ -1,7 +1,8 @@
 """Support for Mojio Platform."""
 import logging
 
-from mojio_sdk.api import API
+from .mojio_api import MojioAPI
+from datetime import datetime
 import requests
 import voluptuous as vol
 
@@ -50,7 +51,7 @@ class MojioDeviceScanner:
         self._include = config.get(CONF_INCLUDE)
         self._see = see
 
-        self._api = API(
+        self._api = MojioAPI(
             config.get(CONF_DOMAIN),
             config.get(CONF_CLIENT_ID),
             config.get(CONF_CLIENT_SECRET),
@@ -61,7 +62,8 @@ class MojioDeviceScanner:
     def setup(self, hass):
         """Set up a timer and start gathering devices."""
         self._refresh()
-        track_utc_time_change(hass, lambda now: self._refresh(), minute=range(0, 60, 5))
+        # track_utc_time_change(hass, lambda now: self._refresh(), minute=range(0, 60, 5))
+        track_utc_time_change(hass, lambda now: self._refresh(), second=59)
 
     def login(self, hass):
         """Perform a login on the Mojio API."""
@@ -73,6 +75,7 @@ class MojioDeviceScanner:
     def _refresh(self) -> None:
         """Refresh device information from the platform."""
         try:
+            _LOGGER.info("Calling refresh: %s" % (datetime.now().strftime("%d/%m/%Y %H:%M:%S")))
             vehicles = self._api.get_vehicles()
 
             for vehicle in vehicles:
@@ -86,9 +89,11 @@ class MojioDeviceScanner:
                                   "left_turn": vehicle.left_turn,
                                   "idle": vehicle.idle,
                                   "ignition_state": vehicle.ignition_state,
+                                  "disturbance_state": vehicle.disturbance_state,
                                   "tow_state": vehicle.tow_state,
                                   "last_contact": vehicle.last_contact,
                                   "fuel_level": vehicle.fuel.fuel_level,
+                                  "virtual_fuel_level": vehicle.fuel.virtual_fuel_level,
                                   "seatbelt_warn": vehicle.seatbelt.status_warning,
                                   "battery_voltage": vehicle.battery.value,
                                   "rpm": vehicle.current_rpm,

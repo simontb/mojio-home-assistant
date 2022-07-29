@@ -1,7 +1,8 @@
 """Support for Mojio Platform."""
 import logging
 
-from .mojio_api import MojioAPI
+from mojio_sdk.api import API
+from mojio_sdk.trip import Trip
 from datetime import datetime
 import requests
 import voluptuous as vol
@@ -51,7 +52,7 @@ class MojioDeviceScanner:
         self._include = config.get(CONF_INCLUDE)
         self._see = see
 
-        self._api = MojioAPI(
+        self._api = API(
             config.get(CONF_DOMAIN),
             config.get(CONF_CLIENT_ID),
             config.get(CONF_CLIENT_SECRET),
@@ -62,8 +63,9 @@ class MojioDeviceScanner:
     def setup(self, hass):
         """Set up a timer and start gathering devices."""
         self._refresh()
-        # track_utc_time_change(hass, lambda now: self._refresh(), minute=range(0, 60, 5))
-        track_utc_time_change(hass, lambda now: self._refresh(), second=59)
+        # For testing
+        # track_utc_time_change(hass, lambda now: self._refresh(), second=59)
+        track_utc_time_change(hass, lambda now: self._refresh(), minute=range(0, 60, 5))
 
     def login(self, hass):
         """Perform a login on the Mojio API."""
@@ -76,36 +78,46 @@ class MojioDeviceScanner:
         """Refresh device information from the platform."""
         try:
             _LOGGER.info("Calling refresh: %s" % (datetime.now().strftime("%d/%m/%Y %H:%M:%S")))
+            trips = self._api.get_trips()
             vehicles = self._api.get_vehicles()
-
             for vehicle in vehicles:
-                v_id = vehicle.licence_plate.replace("-", "_").replace(" ", "_")
-                car_attributes = {"address": vehicle.location.formatted_address,
-                                  "VIN": vehicle.vin,
-                                  "parked": vehicle.parked,
-                                  "status": vehicle.status,
-                                  "name": vehicle.name,
-                                  "direction": vehicle.heading_direction,
-                                  "left_turn": vehicle.left_turn,
-                                  "idle": vehicle.idle,
-                                  "ignition_state": vehicle.ignition_state,
-                                  "disturbance_state": vehicle.disturbance_state,
-                                  "tow_state": vehicle.tow_state,
-                                  "last_contact": vehicle.last_contact,
-                                  "fuel_level": vehicle.fuel.fuel_level,
-                                  "virtual_fuel_level": vehicle.fuel.virtual_fuel_level,
-                                  "seatbelt_warn": vehicle.seatbelt.status_warning,
-                                  "battery_voltage": vehicle.battery.value,
-                                  "rpm": vehicle.current_rpm,
-                                  "speed_mph": vehicle.current_speed_mph,
-                                  "speed_kph": vehicle.current_speed_kph,
-                                  "oil_temp_f": vehicle.engine_oil.temp_f,
-                                  "oil_temp_c": vehicle.engine_oil.temp_c}
+                last_comp_trip = Trip.get_last_trip(trips, vehicle.mojio_id, True)
+                car_attr = {"VIN": vehicle.getattribute("vin"),
+                            "name": vehicle.getattribute("name"),
+                            "parked": vehicle.getattribute("parked"),
+                            "status": vehicle.getattribute("status"),
+                            "direction": vehicle.getattribute("heading_direction"),
+                            "left_turn": vehicle.getattribute("left_turn"),
+                            "idle": vehicle.getattribute("idle"),
+                            "ignition_state": vehicle.getattribute("ignition_state"),
+                            "disturbance_state": vehicle.getattribute("disturbance_state"),
+                            "tow_state": vehicle.getattribute("tow_state"),
+                            "last_contact": vehicle.getattribute("last_contact"),
+                            "last_trip_id": vehicle.getattribute("last_trip_id"),
+                            "rpm": vehicle.getattribute("current_rpm"),
+                            "speed_mph": vehicle.getattribute("current_speed_mph"),
+                            "speed_kph": vehicle.getattribute("current_speed_kph"),
+                            "seatbelt_warn": vehicle.getattribute("seatbelt_status_warning", False),
+                            "address": vehicle.location.getattribute("formatted_address"),
+                            "battery_voltage": vehicle.battery.getattribute("value"),
+                            "fuel_level": vehicle.fuel.getattribute("fuel_level", 0),
+                            "virtual_fuel_level": vehicle.fuel.getattribute("virtual_fuel_level", 0),
+                            "oil_temp_f": vehicle.engine_oil.getattribute("temp_f"),
+                            "oil_temp_c": vehicle.engine_oil.getattribute("temp_c"),
+                            "lct_start": last_comp_trip.getattribute("start_date"),
+                            "lct_end": last_comp_trip.getattribute("end_date"),
+                            "lct_mpg": last_comp_trip.getattribute("mpg"),
+                            "lct_kpl": last_comp_trip.getattribute("kpl"),
+                            "lct_max_mph": last_comp_trip.getattribute("max_speed_mph"),
+                            "lct_max_kph": last_comp_trip.getattribute("max_speed_kph"),
+                            "lct_distance_mi": last_comp_trip.getattribute("distance_mi"),
+                            "lct_distance_km": last_comp_trip.getattribute("distance_km"),
+                            "lct_duration": last_comp_trip.getattribute("duration"), }
                 self._see(
-                    dev_id=v_id,
+                    dev_id=vehicle.id,
                     gps=(vehicle.location.latitude, vehicle.location.longitude),
                     icon="mdi:car",
-                    attributes=car_attributes,
+                    attributes=car_attr,
                 )
 
         except requests.exceptions.ConnectionError:

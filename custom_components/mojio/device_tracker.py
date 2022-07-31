@@ -1,8 +1,8 @@
 """Support for Mojio Platform."""
 import logging
 
-from mojio_sdk.api import API
-from mojio_sdk.trip import Trip
+from .mojio_sdk.api import API
+from .mojio_sdk.trip import Trip
 from datetime import datetime
 import requests
 import voluptuous as vol
@@ -64,8 +64,8 @@ class MojioDeviceScanner:
         """Set up a timer and start gathering devices."""
         self._refresh()
         # For testing
-        # track_utc_time_change(hass, lambda now: self._refresh(), second=59)
-        track_utc_time_change(hass, lambda now: self._refresh(), minute=range(0, 60, 5))
+        track_utc_time_change(hass, lambda now: self._refresh(), second=59)
+        # track_utc_time_change(hass, lambda now: self._refresh(), minute=range(0, 60, 5))
 
     def login(self, hass):
         """Perform a login on the Mojio API."""
@@ -82,6 +82,8 @@ class MojioDeviceScanner:
             vehicles = self._api.get_vehicles()
             for vehicle in vehicles:
                 last_comp_trip = Trip.get_last_trip(trips, vehicle.mojio_id, True)
+                if last_comp_trip.is_empty:
+                    last_comp_trip = self._api.get_trip(vehicle.last_trip_id)
                 car_attr = {"VIN": vehicle.getattribute("vin"),
                             "name": vehicle.getattribute("name"),
                             "parked": vehicle.getattribute("parked"),
@@ -94,24 +96,26 @@ class MojioDeviceScanner:
                             "tow_state": vehicle.getattribute("tow_state"),
                             "last_contact": vehicle.getattribute("last_contact"),
                             "last_trip_id": vehicle.getattribute("last_trip_id"),
-                            "rpm": vehicle.getattribute("current_rpm"),
-                            "speed_mph": vehicle.getattribute("current_speed_mph"),
-                            "speed_kph": vehicle.getattribute("current_speed_kph"),
+                            "rpm": vehicle.getattribute("current_rpm", None),
+                            "speed_mph": vehicle.getattribute("current_speed_mph", None),
+                            "speed_kph": vehicle.getattribute("current_speed_kph", None),
                             "seatbelt_warn": vehicle.getattribute("seatbelt_status_warning", False),
                             "address": vehicle.location.getattribute("formatted_address"),
                             "battery_voltage": vehicle.battery.getattribute("value"),
-                            "fuel_level": vehicle.fuel.getattribute("fuel_level", 0),
-                            "virtual_fuel_level": vehicle.fuel.getattribute("virtual_fuel_level", 0),
-                            "oil_temp_f": vehicle.engine_oil.getattribute("temp_f"),
-                            "oil_temp_c": vehicle.engine_oil.getattribute("temp_c"),
+                            "fuel_level": vehicle.fuel.getattribute("fuel_level", None),
+                            "virtual_fuel_level": vehicle.fuel.getattribute("virtual_fuel_level", None),
+                            "oil_temp_f": vehicle.engine_oil.getattribute("temp_f", None),
+                            "oil_temp_c": vehicle.engine_oil.getattribute("temp_c", None),
+                            "dtc_count": vehicle.dtc.getattribute("count"),
+                            "dtc_details": vehicle.dtc.getattribute("details", None),
                             "lct_start": last_comp_trip.getattribute("start_date"),
                             "lct_end": last_comp_trip.getattribute("end_date"),
-                            "lct_mpg": last_comp_trip.getattribute("mpg"),
-                            "lct_kpl": last_comp_trip.getattribute("kpl"),
-                            "lct_max_mph": last_comp_trip.getattribute("max_speed_mph"),
-                            "lct_max_kph": last_comp_trip.getattribute("max_speed_kph"),
-                            "lct_distance_mi": last_comp_trip.getattribute("distance_mi"),
-                            "lct_distance_km": last_comp_trip.getattribute("distance_km"),
+                            "lct_mpg": last_comp_trip.getattribute("mpg", None),
+                            "lct_kpl": last_comp_trip.getattribute("kpl", None),
+                            "lct_max_mph": last_comp_trip.getattribute("max_speed_mph", None),
+                            "lct_max_kph": last_comp_trip.getattribute("max_speed_kph", None),
+                            "lct_distance_mi": last_comp_trip.getattribute("distance_mi", None),
+                            "lct_distance_km": last_comp_trip.getattribute("distance_km", None),
                             "lct_duration": last_comp_trip.getattribute("duration"), }
                 self._see(
                     dev_id=vehicle.id,

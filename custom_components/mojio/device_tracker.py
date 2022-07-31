@@ -64,8 +64,8 @@ class MojioDeviceScanner:
         """Set up a timer and start gathering devices."""
         self._refresh()
         # For testing
-        track_utc_time_change(hass, lambda now: self._refresh(), second=59)
-        # track_utc_time_change(hass, lambda now: self._refresh(), minute=range(0, 60, 5))
+        # track_utc_time_change(hass, lambda now: self._refresh(), second=59)
+        track_utc_time_change(hass, lambda now: self._refresh(), minute=range(0, 60, 5))
 
     def login(self, hass):
         """Perform a login on the Mojio API."""

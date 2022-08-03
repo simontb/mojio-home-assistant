@@ -1,8 +1,8 @@
 """Support for Mojio Platform."""
 import logging
 
-from .mojio_sdk.api import API
-from .mojio_sdk.trip import Trip
+from mojio_sdk.api import API
+from mojio_sdk.trip import Trip
 from datetime import datetime
 import requests
 import voluptuous as vol

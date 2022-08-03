@@ -82,7 +82,7 @@ class MojioDeviceScanner:
             vehicles = self._api.get_vehicles()
             for vehicle in vehicles:
                 last_comp_trip = Trip.get_last_trip(trips, vehicle.mojio_id, True)
-                if last_comp_trip.is_empty:
+                if not last_comp_trip.has_data:
                     last_comp_trip = self._api.get_trip(vehicle.last_trip_id)
                 car_attr = {"VIN": vehicle.getattribute("vin"),
                             "name": vehicle.getattribute("name"),

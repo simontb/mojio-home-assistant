@@ -14,6 +14,7 @@ from homeassistant.const import (
     CONF_DOMAIN,
     CONF_PASSWORD,
     CONF_USERNAME,
+    CONF_SCAN_INTERVAL,
 )
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_utc_time_change
@@ -29,6 +30,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_DOMAIN): cv.string,
         vol.Required(CONF_CLIENT_ID): cv.string,
         vol.Required(CONF_CLIENT_SECRET): cv.string,
+        vol.Required(CONF_SCAN_INTERVAL, default=5): cv.positive_int,
         vol.Optional(CONF_INCLUDE, default=[]): vol.All(cv.ensure_list, [cv.string]),
     }
 )
@@ -51,6 +53,7 @@ class MojioDeviceScanner:
 
         self._include = config.get(CONF_INCLUDE)
         self._see = see
+        self._scan_interval = config.get(CONF_SCAN_INTERVAL)
 
         self._api = API(
             config.get(CONF_DOMAIN),
@@ -63,9 +66,10 @@ class MojioDeviceScanner:
     def setup(self, hass):
         """Set up a timer and start gathering devices."""
         self._refresh()
-        # For testing
-        # track_utc_time_change(hass, lambda now: self._refresh(), second=59)
-        track_utc_time_change(hass, lambda now: self._refresh(), minute=range(0, 60, 5))
+        min_cron = '/%s' % self._scan_interval
+        _LOGGER.info("Using refresh interval min: %s" % (min_cron))
+        track_utc_time_change(hass, lambda now: self._refresh(), minute=min_cron, second=0)
+
 
     def login(self, hass):
         """Perform a login on the Mojio API."""
@@ -82,7 +86,7 @@ class MojioDeviceScanner:
             vehicles = self._api.get_vehicles()
             for vehicle in vehicles:
                 last_comp_trip = Trip.get_last_trip(trips, vehicle.mojio_id, True)
-                if last_comp_trip.is_empty:
+                if not last_comp_trip.has_data:
                     last_comp_trip = self._api.get_trip(vehicle.last_trip_id)
                 car_attr = {"VIN": vehicle.getattribute("vin"),
                             "name": vehicle.getattribute("name"),
